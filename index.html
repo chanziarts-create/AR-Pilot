@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Michael Angore | AR Business Card</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- A-Frame first, then MindAR -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    :root {
+      --cyan: #00e5ff;
+      --cyan-dim: rgba(0, 229, 255, 0.15);
+      --cyan-border: rgba(0, 229, 255, 0.3);
+      --dark: #000000;
+      --dark-surface: rgba(5, 10, 18, 0.85);
+      --text: #ffffff;
+      --text-dim: rgba(255, 255, 255, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--dark);
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ── SCANLINE OVERLAY ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 229, 255, 0.015) 2px,
+        rgba(0, 229, 255, 0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 999;
+      padding: 20px 24px 30px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, transparent 100%);
+      text-align: center;
+    }
+
+    .header-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+
+    .header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .header h1 span {
+      color: var(--cyan);
+    }
+
+    .header p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      letter-spacing: 5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* ── CORNER BRACKETS ── */
+    .corner {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      z-index: 998;
+      opacity: 0.5;
+    }
+    .corner-tl { top: 12px; left: 12px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner-tr { top: 12px; right: 12px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+    .corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner-br { bottom: 12px; right: 12px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+    /* ── INSTRUCTIONS ── */
+    .instructions {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 997;
+      text-align: center;
+      pointer-events: none;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .scan-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan-border);
+      margin: 0 auto 16px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scan-ring::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan-border);
+    }
+
+    .scan-ring-icon {
+      font-size: 40px;
+    }
+
+    .instructions p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .instructions .sub {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      margin-top: 6px;
+      opacity: 0.6;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ── CONTACT PANEL ── */
+    .contact-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 999;
+      padding: 16px 16px 28px;
+      background: linear-gradient(to top, rgba(0,0,0,0.97) 60%, transparent 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 4px;
+      opacity: 0.5;
+    }
+
+    .contact-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 16px;
+      border-radius: 4px;
+      border: 1px solid var(--cyan-border);
+      background: var(--cyan-dim);
+      color: var(--text);
+      text-decoration: none;
+      font-family: 'Rajdhani', sans-serif;
+      backdrop-filter: blur(12px);
+      transition: background 0.2s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contact-btn::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--cyan);
+      opacity: 0.6;
+    }
+
+    .contact-btn:active {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--cyan);
+    }
+
+    .btn-icon {
+      font-size: 18px;
+      width: 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .btn-text {
+      flex: 1;
+      line-height: 1;
+    }
+
+    .btn-label {
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      opacity: 0.8;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .btn-value {
+      font-size: 14px;
+      letter-spacing: 1px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .btn-arrow {
+      font-size: 12px;
+      color: var(--cyan);
+      opacity: 0.5;
+    }
+
+    /* ── TARGET FOUND STATE ── */
+    .target-found .instructions {
+      display: none;
+    }
+
+    /* ── GLOW DIVIDER ── */
+    .glow-line {
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--cyan), transparent);
+      opacity: 0.2;
+      margin: 0 0 8px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Corner brackets -->
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-label">AR Experience</div>
+    <h1>Michael <span>Angore</span></h1>
+    <p>Creative Designer</p>
+  </div>
+
+  <!-- Instructions (hidden when target found) -->
+  <div class="instructions" id="instructions">
+    <div class="scan-ring">
+      <div class="scan-ring-icon">📇</div>
+    </div>
+    <p>Point camera at business card</p>
+    <p class="sub">Avatar will appear on card</p>
+  </div>
+
+  <!-- AR Scene -->
+  <a-scene
+    mindar-image="imageTargetSrc: targets.mind; autoStart: true;"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets>
+      <a-asset-item id="avatar" src="Meshy_AI_Animation_Agree_Gesture_withSkin.glb"></a-asset-item>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-gltf-model
+        src="#avatar"
+        position="0 0.15 0"
+        rotation="0 0 0"
+        scale="0.5 0.5 0.5"
+        animation-mixer="clip: *; loop: repeat">
+      </a-gltf-model>
+    </a-entity>
+
+  </a-scene>
+
+  <!-- Contact Panel -->
+  <div class="contact-panel">
+    <div class="panel-title">Connect with me</div>
+    <div class="glow-line"></div>
+
+    <a class="contact-btn" href="https://wa.me/254718219138" target="_blank">
+      <span class="btn-icon">💬</span>
+      <div class="btn-text">
+        <span class="btn-label">WhatsApp</span>
+        <span class="btn-value">+254 718 219 138</span>
+      </div>
+      <span class="btn-arrow">›</span>
+    </a>
+
+    <a class="contact-btn" href="mailto:chanziarts@gmail.com">
+      <span class="btn-icon">✉️</span>
+      <div class="btn-text">
+        <span class="btn-label">Email</span>
+        <span class="btn-value">chanziarts@gmail.com</span>
+      </div>
+      <span class="btn-arrow">›</span>
+    </a>
+
+    <a class="contact-btn" href="https://linkedin.com/in/michael-chanzera" target="_blank">
+      <span class="btn-icon">💼</span>
+      <div class="btn-text">
+        <span class="btn-label">LinkedIn</span>
+        <span class="btn-value">Michael Chanzera</span>
+      </div>
+      <span class="btn-arrow">›</span>
+    </a>
+
+  </div>
+
+  <script>
+    const scene = document.querySelector('a-scene');
+    const instructions = document.getElementById('instructions');
+
+    scene.addEventListener('targetFound', () => {
+      instructions.style.display = 'none';
+    });
+
+    scene.addEventListener('targetLost', () => {
+      instructions.style.display = 'block';
+    });
+  </script>
+
+</body>
+</html>
